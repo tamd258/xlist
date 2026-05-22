@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:sqflite/sqflite.dart' as sqflite;
+import 'package:path_provider/path_provider.dart';
 
 import 'package:xlist/storages/index.dart';
 import 'package:xlist/constants/index.dart';
@@ -59,8 +59,9 @@ class SettingController extends GetxController {
         ThemeModeTextMap[Get.find<CommonStorage>().themeMode.val]!;
 
     // 获取存储路径
-    databasePath.value = await _getDatabasePath();
-    preferencesPath.value = await _getPreferencesPath();
+    final dir = await getApplicationDocumentsDirectory();
+    databasePath.value = '${dir.path}/xlist_database.db';
+    preferencesPath.value = dir.path;
   }
 
   /// 更换主题
@@ -82,25 +83,6 @@ class SettingController extends GetxController {
       Future.delayed(Duration(milliseconds: 200), () {
         Get.forceAppUpdate();
       });
-    }
-  }
-
-  /// 获取数据库文件路径
-  Future<String> _getDatabasePath() async {
-    try {
-      return await sqfliteDatabaseFactory.getDatabasePath('xlist_database.db') ?? '';
-    } catch (_) {
-      return '';
-    }
-  }
-
-  /// 获取偏好设置存储路径 (GetStorage)
-  Future<String> _getPreferencesPath() async {
-    try {
-      final dbDir = Directory(await _getDatabasePath()).parent;
-      return dbDir.path;
-    } catch (_) {
-      return '';
     }
   }
 }
