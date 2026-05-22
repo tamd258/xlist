@@ -1,8 +1,10 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import 'package:xlist/common/index.dart';
@@ -223,6 +225,76 @@ class SettingPage extends GetView<SettingController> {
                               value;
                         },
                       ),
+                    ),
+                  ),
+                ],
+              ),
+              CupertinoListSection.insetGrouped(
+                backgroundColor: CommonUtils.backgroundColor,
+                dividerMargin: 20,
+                additionalDividerMargin: 30,
+                header: Container(
+                  padding: EdgeInsets.only(left: 15),
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                      'settings_data_storage'.tr,
+                      style: Get.textTheme.bodySmall),
+                ),
+                children: [
+                  _buildListTile(
+                    title: 'settings_database_path'.tr,
+                    icon: CupertinoIcons.shield_lefthalf_fill,
+                    onTap: () {
+                      Clipboard.setData(
+                          ClipboardData(text: controller.databasePath.value));
+                      SmartDialog.showToast('toast_copy_success'.tr);
+                    },
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 500.w,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            controller.databasePath.value,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Get.textTheme.bodySmall
+                                ?.copyWith(color: CupertinoColors.systemGrey),
+                          ),
+                        ),
+                        SizedBox(width: 5.w),
+                        Icon(CupertinoIcons.doc_on_clipboard,
+                            size: 16, color: CupertinoColors.systemGrey),
+                      ],
+                    ),
+                  ),
+                  _buildListTile(
+                    title: 'settings_preferences_path'.tr,
+                    icon: CupertinoIcons.gear_alt,
+                    onTap: () {
+                      Clipboard.setData(
+                          ClipboardData(text: controller.preferencesPath.value));
+                      SmartDialog.showToast('toast_copy_success'.tr);
+                    },
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 500.w,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            controller.preferencesPath.value,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Get.textTheme.bodySmall
+                                ?.copyWith(color: CupertinoColors.systemGrey),
+                          ),
+                        ),
+                        SizedBox(width: 5.w),
+                        Icon(CupertinoIcons.doc_on_clipboard,
+                            size: 16, color: CupertinoColors.systemGrey),
+                      ],
                     ),
                   ),
                 ],

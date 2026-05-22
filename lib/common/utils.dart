@@ -143,6 +143,18 @@ class CommonUtils {
       files.sort((a, b) => a.name!.compareTo(b.name!));
     }
 
+    // 大小降序
+    if (sortType == SortType.SIZE_DESC) {
+      folders.sort((a, b) => (b.size ?? 0).compareTo(a.size ?? 0));
+      files.sort((a, b) => (b.size ?? 0).compareTo(a.size ?? 0));
+    }
+
+    // 大小升序
+    if (sortType == SortType.SIZE_ASC) {
+      folders.sort((a, b) => (a.size ?? 0).compareTo(b.size ?? 0));
+      files.sort((a, b) => (a.size ?? 0).compareTo(b.size ?? 0));
+    }
+
     return [...folders, ...files];
   }
 

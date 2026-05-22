@@ -25,6 +25,8 @@ class SortType {
   static const TIME_ASC = 1;
   static const NAME_DESC = 2;
   static const NAME_ASC = 3;
+  static const SIZE_DESC = 4;
+  static const SIZE_ASC = 5;
 }
 
 /// 播放模式

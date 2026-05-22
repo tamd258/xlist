@@ -188,6 +188,22 @@ class ButtonHelper {
           await controller.getObjectList();
         },
       ),
+      PullDownMenuItem(
+        title: 'pull_down_size'.tr,
+        icon: [4, 5].contains(sortType)
+            ? (sortType == 4
+                ? CupertinoIcons.chevron_down
+                : CupertinoIcons.chevron_up)
+            : null,
+        onTap: () async {
+          sortType == 5
+              ? controller.sortType.value = 4
+              : controller.sortType.value = 5;
+          Get.find<PreferencesStorage>().sortType.val =
+              controller.sortType.value;
+          await controller.getObjectList();
+        },
+      ),
     ]);
 
     return PullDownButton(

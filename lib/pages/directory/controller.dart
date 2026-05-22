@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_refresh/easy_refresh.dart';
@@ -9,7 +11,9 @@ import 'package:xlist/services/index.dart';
 import 'package:xlist/storages/index.dart';
 import 'package:xlist/constants/index.dart';
 import 'package:xlist/repositorys/index.dart';
+import 'package:xlist/routes/app_pages.dart';
 import 'package:xlist/database/entity/index.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 class DirectoryController extends GetxController {
   final userInfo = UserModel().obs; // 用户信息
@@ -29,6 +33,13 @@ class DirectoryController extends GetxController {
   final String source = Get.arguments['source'] ?? '';
   final String srcDir = Get.arguments['srcDir'] ?? '';
   final ObjectModel srcObject = Get.arguments['srcObject'] ?? ObjectModel();
+  // 批量项 (可选): [{srcDir: String, name: String}]
+  final List<Map<String, String>> srcItems = (Get.arguments['srcItems']
+              as List?)
+          ?.map<Map<String, String>>(
+              (e) => {'srcDir': e['srcDir'] ?? '', 'name': e['name'] ?? ''})
+          .toList() ??
+      const [];
 
   // ScrollController
   final ScrollController scrollController = ScrollController();
@@ -128,6 +139,40 @@ class DirectoryController extends GetxController {
 
   /// 移动和复制
   Future<void> moveOrCopy() async {
+    // 批量
+    if (srcItems.isNotEmpty) {
+      int count = 0;
+      SmartDialog.showLoading();
+      try {
+        for (final item in srcItems) {
+          final resp = isCopy
+              ? await ObjectRepository.copy(
+                  srcDir: item['srcDir']!,
+                  dstDir: path,
+                  name: item['name']!,
+                )
+              : await ObjectRepository.move(
+                  srcDir: item['srcDir']!,
+                  dstDir: path,
+                  name: item['name']!,
+                );
+          if (resp['code'] == HttpStatus.ok) count++;
+        }
+        SmartDialog.dismiss();
+        SmartDialog.showToast((isCopy ? 'toast_copy_batch' : 'toast_move_batch')
+            .tr
+            .replaceAll('@count', '$count'));
+      } catch (e) {
+        SmartDialog.dismiss();
+        SmartDialog.showToast(e.toString());
+      }
+      // 关闭目录选择栈, 回到来源页
+      if (source.isEmpty) {
+        Get.until((route) => !Get.currentRoute.startsWith(Routes.DIRECTORY));
+      }
+      return;
+    }
+
     if (isCopy) {
       return await ObjectHelper.copy(
         srcDir: srcDir,
