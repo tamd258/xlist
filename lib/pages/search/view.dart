@@ -375,8 +375,8 @@ class SearchPage extends GetView<SearchController> {
   /// 单项构建 - 列表
   Widget _buildListTile(int index) {
     final s = controller.searchList[index];
-    final selected = controller.selectedIndexes.contains(index);
     final inSelection = controller.selectionMode.value;
+    final selected = controller.selectedIndexes.contains(index);
 
     final tile = Row(
       children: [
@@ -385,8 +385,8 @@ class SearchPage extends GetView<SearchController> {
             padding: EdgeInsets.symmetric(horizontal: 20.r),
             child: Icon(
               selected
-                  ? CupertinoIcons.checkmark_circle_fill
-                  : CupertinoIcons.circle,
+                  ? CupertinoIcons.checkmark_square_fill
+                  : CupertinoIcons.square,
               color: selected
                   ? Get.theme.primaryColor
                   : CupertinoColors.systemGrey,
@@ -419,7 +419,7 @@ class SearchPage extends GetView<SearchController> {
       },
       onLongPress: () async {
         await HapticFeedback.mediumImpact();
-        if (!inSelection) {
+        if (!controller.selectionMode.value) {
           controller.enterSelection(initialIndex: index);
         }
       },
@@ -441,8 +441,8 @@ class SearchPage extends GetView<SearchController> {
   /// 网格构建项
   Widget _buildGridTile(int index) {
     final s = controller.searchList[index];
-    final selected = controller.selectedIndexes.contains(index);
     final inSelection = controller.selectionMode.value;
+    final selected = controller.selectedIndexes.contains(index);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -456,7 +456,7 @@ class SearchPage extends GetView<SearchController> {
       },
       onLongPress: () async {
         await HapticFeedback.mediumImpact();
-        if (!inSelection) {
+        if (!controller.selectionMode.value) {
           controller.enterSelection(initialIndex: index);
         }
       },
@@ -477,8 +477,8 @@ class SearchPage extends GetView<SearchController> {
               right: 5,
               child: Icon(
                 selected
-                    ? CupertinoIcons.checkmark_circle_fill
-                    : CupertinoIcons.circle,
+                    ? CupertinoIcons.checkmark_square_fill
+                    : CupertinoIcons.square,
                 color: selected
                     ? Get.theme.primaryColor
                     : CupertinoColors.systemGrey,
@@ -613,7 +613,14 @@ class SearchPage extends GetView<SearchController> {
         _buildSearchBar(),
         SliverPadding(
           padding: EdgeInsets.symmetric(horizontal: 30.r),
-          sliver: SizeCacheWidget(child: Obx(() => _buildSliverList())),
+          sliver: SizeCacheWidget(
+            child: Obx(() {
+              // 读取 selectionMode 和 selectedIndexes 以触发重建
+              final _ = controller.selectionMode.value;
+              final __ = controller.selectedIndexes.length;
+              return _buildSliverList();
+            }),
+          ),
         ),
       ],
     );
