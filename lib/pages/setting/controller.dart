@@ -5,6 +5,7 @@ import 'package:in_app_review/in_app_review.dart';
 import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart' show getDatabasesPath;
 
 import 'package:xlist/storages/index.dart';
 import 'package:xlist/constants/index.dart';
@@ -58,10 +59,11 @@ class SettingController extends GetxController {
     themeModeText.value =
         ThemeModeTextMap[Get.find<CommonStorage>().themeMode.val]!;
 
-    // 获取存储路径
-    final dir = await getApplicationDocumentsDirectory();
-    databasePath.value = '${dir.path}/xlist_database.db';
-    preferencesPath.value = dir.path;
+    // 获取存储路径 (数据库用 sqflite 路径，偏好设置用文档目录)
+    final dbDir = await getDatabasesPath();
+    databasePath.value = '$dbDir/xlist_database.db';
+    final docDir = await getApplicationDocumentsDirectory();
+    preferencesPath.value = docDir.path;
   }
 
   /// 更换主题
