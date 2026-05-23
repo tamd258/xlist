@@ -237,6 +237,30 @@ class SettingPage extends GetView<SettingController> {
                   padding: EdgeInsets.only(left: 15),
                   alignment: Alignment.centerLeft,
                   child: Text(
+                      'settings_backup'.tr,
+                      style: Get.textTheme.bodySmall),
+                ),
+                children: [
+                  _buildListTile(
+                    title: 'settings_backup_to_alist'.tr,
+                    icon: CupertinoIcons.cloud_upload,
+                    onTap: () => controller.backupToAlist(),
+                  ),
+                  _buildListTile(
+                    title: 'settings_restore_from_alist'.tr,
+                    icon: CupertinoIcons.cloud_download,
+                    onTap: () => controller.restoreFromAlist(),
+                  ),
+                ],
+              ),
+              CupertinoListSection.insetGrouped(
+                backgroundColor: CommonUtils.backgroundColor,
+                dividerMargin: 20,
+                additionalDividerMargin: 30,
+                header: Container(
+                  padding: EdgeInsets.only(left: 15),
+                  alignment: Alignment.centerLeft,
+                  child: Text(
                       'settings_data_storage'.tr,
                       style: Get.textTheme.bodySmall),
                 ),

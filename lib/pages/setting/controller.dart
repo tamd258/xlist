@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:get/get.dart';
+import 'package:dio/dio.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart' show getDatabasesPath;
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 import 'package:xlist/storages/index.dart';
 import 'package:xlist/constants/index.dart';
@@ -64,6 +67,82 @@ class SettingController extends GetxController {
     databasePath.value = '$dbDir/xlist_database.db';
     final docDir = await getApplicationDocumentsDirectory();
     preferencesPath.value = docDir.path;
+  }
+
+  /// 备份数据库到 alist 服务器
+  Future<void> backupToAlist() async {
+    final s = serverInfo.value;
+    if (s.url.isEmpty) {
+      SmartDialog.showToast('请先配置服务器');
+      return;
+    }
+
+    SmartDialog.showLoading(msg: '正在备份...');
+    try {
+      final url = s.url.endsWith('/') ? s.url : '${s.url}/';
+      final auth = base64Encode(utf8.encode('${s.username}:${s.password}'));
+      final dio = Dio(BaseOptions(
+        headers: {'Authorization': 'Basic $auth'},
+        connectTimeout: const Duration(seconds: 30),
+      ));
+
+      final dbFile = File(databasePath.value);
+      if (!await dbFile.exists()) {
+        SmartDialog.dismiss();
+        SmartDialog.showToast('数据库文件不存在');
+        return;
+      }
+
+      final bytes = await dbFile.readAsBytes();
+      await dio.put('${url}dav/xlist_backup/xlist_database.db', data: bytes);
+      SmartDialog.dismiss();
+      SmartDialog.showToast('备份成功！已保存到 alist /xlist_backup/');
+    } catch (e) {
+      SmartDialog.dismiss();
+      SmartDialog.showToast('备份失败: $e');
+    }
+  }
+
+  /// 从 alist 服务器恢复数据库
+  Future<void> restoreFromAlist() async {
+    final s = serverInfo.value;
+    if (s.url.isEmpty) {
+      SmartDialog.showToast('请先配置服务器');
+      return;
+    }
+
+    final ok = await showOkCancelAlertDialog(
+      context: Get.overlayContext!,
+      title: '恢复数据',
+      message: '将从服务器下载备份并覆盖本地数据，应用将重启。确定继续？',
+      okLabel: '确定',
+      cancelLabel: '取消',
+    );
+    if (ok != OkCancelResult.ok) return;
+
+    SmartDialog.showLoading(msg: '正在恢复...');
+    try {
+      final url = s.url.endsWith('/') ? s.url : '${s.url}/';
+      final auth = base64Encode(utf8.encode('${s.username}:${s.password}'));
+      final dio = Dio(BaseOptions(
+        headers: {'Authorization': 'Basic $auth'},
+        connectTimeout: const Duration(seconds: 30),
+      ));
+
+      final response = await dio.get('${url}dav/xlist_backup/xlist_database.db',
+          options: Options(responseType: ResponseType.bytes));
+
+      final dbFile = File(databasePath.value);
+      await dbFile.writeAsBytes(response.data);
+      SmartDialog.dismiss();
+      SmartDialog.showToast('恢复成功！即将重启应用');
+      Future.delayed(const Duration(seconds: 2), () {
+        Get.forceAppUpdate();
+      });
+    } catch (e) {
+      SmartDialog.dismiss();
+      SmartDialog.showToast('恢复失败: $e');
+    }
   }
 
   /// 更换主题
