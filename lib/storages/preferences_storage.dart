@@ -50,4 +50,7 @@ class PreferencesStorage {
 
   // 播放模式 - 列表循环, 单集循环, 播完暂停
   final playMode = 0.val('playMode', getBox: _prefBox);
+
+  // 备份路径 (alist WebDAV 上的目录)
+  final backupPath = '/xlist_backup'.val('backupPath', getBox: _prefBox);
 }

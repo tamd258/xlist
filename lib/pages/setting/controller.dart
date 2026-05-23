@@ -69,6 +69,9 @@ class SettingController extends GetxController {
     preferencesPath.value = docDir.path;
   }
 
+  /// 备份路径（可自定义到任意云盘目录，如 /阿里云盘/xlist备份）
+  final backupPath = Get.find<PreferencesStorage>().backupPath;
+
   /// 备份数据库到 alist 服务器
   Future<void> backupToAlist() async {
     final s = serverInfo.value;
@@ -77,7 +80,13 @@ class SettingController extends GetxController {
       return;
     }
 
-    SmartDialog.showLoading(msg: '正在备份...');
+    final dir = backupPath.val;
+    if (dir.isEmpty || dir == '/') {
+      SmartDialog.showToast('请先设置备份路径(不能为根目录)');
+      return;
+    }
+
+    SmartDialog.showLoading(msg: '正在备份到 $dir ...');
     try {
       final url = s.url.endsWith('/') ? s.url : '${s.url}/';
       final auth = base64Encode(utf8.encode('${s.username}:${s.password}'));
@@ -93,10 +102,11 @@ class SettingController extends GetxController {
         return;
       }
 
+      final path = dir.startsWith('/') ? dir : '/$dir';
       final bytes = await dbFile.readAsBytes();
-      await dio.put('${url}dav/xlist_backup/xlist_database.db', data: bytes);
+      await dio.put('${url}dav$path/xlist_database.db', data: bytes);
       SmartDialog.dismiss();
-      SmartDialog.showToast('备份成功！已保存到 alist /xlist_backup/');
+      SmartDialog.showToast('备份成功！已保存到 $path/');
     } catch (e) {
       SmartDialog.dismiss();
       SmartDialog.showToast('备份失败: $e');
@@ -111,10 +121,16 @@ class SettingController extends GetxController {
       return;
     }
 
+    final dir = backupPath.val;
+    if (dir.isEmpty || dir == '/') {
+      SmartDialog.showToast('请先设置备份路径(不能为根目录)');
+      return;
+    }
+
     final ok = await showOkCancelAlertDialog(
       context: Get.overlayContext!,
       title: '恢复数据',
-      message: '将从服务器下载备份并覆盖本地数据，应用将重启。确定继续？',
+      message: '将从 $dir/ 下载备份并覆盖本地数据，应用将重启。确定继续？',
       okLabel: '确定',
       cancelLabel: '取消',
     );
@@ -129,7 +145,8 @@ class SettingController extends GetxController {
         connectTimeout: const Duration(seconds: 30),
       ));
 
-      final response = await dio.get('${url}dav/xlist_backup/xlist_database.db',
+      final path = dir.startsWith('/') ? dir : '/$dir';
+      final response = await dio.get('${url}dav$path/xlist_database.db',
           options: Options(responseType: ResponseType.bytes));
 
       final dbFile = File(databasePath.value);

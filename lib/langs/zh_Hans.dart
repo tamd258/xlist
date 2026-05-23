@@ -69,6 +69,7 @@ const Map<String, String> zh_Hans = {
   'toast_remove_batch': '已删除 @count 个文件',
   'settings_data_storage': '数据存储',
   'settings_backup': '数据备份',
+  'settings_backup_path': '备份路径',
   'settings_backup_to_alist': '备份数据到 alist',
   'settings_restore_from_alist': '从 alist 恢复数据',
   'settings_database_path': '数据库路径',
