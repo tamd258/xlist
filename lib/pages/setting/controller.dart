@@ -72,7 +72,7 @@ class SettingController extends GetxController {
   /// 备份路径（可自定义到任意云盘目录，如 /阿里云盘/xlist备份）
   final backupPath = Get.find<PreferencesStorage>().backupPath.val.obs;
 
-  /// 备份数据库到 alist 服务器
+  /// 备份数据库到 alist 服务器（同时备份 .db + .db-wal）
   Future<void> backupToAlist() async {
     final s = serverInfo.value;
     if (s.url.isEmpty) {
@@ -95,10 +95,8 @@ class SettingController extends GetxController {
         connectTimeout: const Duration(seconds: 30),
       ));
 
-      // 0. 先将 WAL 写入主数据库（否则备份文件为空或不完整）
-      await DatabaseService.to.checkpoint();
-
       final dbFile = File(databasePath.value);
+      final walFile = File('${databasePath.value}-wal');
       if (!await dbFile.exists()) {
         SmartDialog.dismiss();
         SmartDialog.showToast('数据库文件不存在');
@@ -106,15 +104,24 @@ class SettingController extends GetxController {
       }
 
       final path = dir.startsWith('/') ? dir : '/$dir';
-      // 同时存 latest + 时间戳版本
       final now = DateTime.now();
       final ts = '${now.year}${now.month.toString().padLeft(2,'0')}${now.day.toString().padLeft(2,'0')}_'
           '${now.hour.toString().padLeft(2,'0')}${now.minute.toString().padLeft(2,'0')}';
-      final bytes = await dbFile.readAsBytes();
-      await dio.put('${url}dav$path/xlist_backup_latest.db', data: bytes);
-      await dio.put('${url}dav$path/xlist_backup_$ts.db', data: bytes);
+
+      // 备份主数据库
+      final dbBytes = await dbFile.readAsBytes();
+      await dio.put('${url}dav$path/xlist_backup_latest.db', data: dbBytes);
+      await dio.put('${url}dav$path/xlist_backup_$ts.db', data: dbBytes);
+
+      // 同时备份 WAL 日志（WAL 模式的关键数据）
+      if (await walFile.exists()) {
+        final walBytes = await walFile.readAsBytes();
+        await dio.put('${url}dav$path/xlist_backup_latest.db-wal', data: walBytes);
+      }
+
+      final totalKB = ((dbBytes.length + (await walFile.exists() ? await walFile.length() : 0)) / 1024).toStringAsFixed(0);
       SmartDialog.dismiss();
-      SmartDialog.showToast('备份成功！$path/ (latest + $ts)');
+      SmartDialog.showToast('备份成功 ${totalKB}KB ($ts)');
     } catch (e) {
       SmartDialog.dismiss();
       SmartDialog.showToast('备份失败: $e');
@@ -162,11 +169,21 @@ class SettingController extends GetxController {
 
       // 2. 清理 WAL/SHM 日志文件，避免旧数据残留
       final dbFile = File(databasePath.value);
-      try { await File('${databasePath.value}-wal').delete(); } catch (_) {}
+      final walFile = File('${databasePath.value}-wal');
+      try { await walFile.delete(); } catch (_) {}
       try { await File('${databasePath.value}-shm').delete(); } catch (_) {}
 
       // 3. 覆盖数据库文件（flush: true 强制写入磁盘）
       await dbFile.writeAsBytes(response.data, flush: true);
+
+      // 3b. 恢复 WAL 文件（如果备份中包含）
+      try {
+        final walResp = await dio.get('${url}dav$path/xlist_backup_latest.db-wal',
+            options: Options(responseType: ResponseType.bytes));
+        await walFile.writeAsBytes(walResp.data, flush: true);
+      } catch (_) {
+        // WAL 文件可能不存在（旧版备份），忽略
+      }
 
       // 4. 验证写入成功
       final writtenSize = await dbFile.length();
