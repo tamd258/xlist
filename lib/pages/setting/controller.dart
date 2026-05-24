@@ -103,17 +103,22 @@ class SettingController extends GetxController {
       }
 
       final path = dir.startsWith('/') ? dir : '/$dir';
+      // 同时存 latest + 时间戳版本
+      final now = DateTime.now();
+      final ts = '${now.year}${now.month.toString().padLeft(2,'0')}${now.day.toString().padLeft(2,'0')}_'
+          '${now.hour.toString().padLeft(2,'0')}${now.minute.toString().padLeft(2,'0')}';
       final bytes = await dbFile.readAsBytes();
-      await dio.put('${url}dav$path/xlist_database.db', data: bytes);
+      await dio.put('${url}dav$path/xlist_backup_latest.db', data: bytes);
+      await dio.put('${url}dav$path/xlist_backup_$ts.db', data: bytes);
       SmartDialog.dismiss();
-      SmartDialog.showToast('备份成功！已保存到 $path/');
+      SmartDialog.showToast('备份成功！$path/ (latest + $ts)');
     } catch (e) {
       SmartDialog.dismiss();
       SmartDialog.showToast('备份失败: $e');
     }
   }
 
-  /// 从 alist 服务器恢复数据库
+  /// 从 alist 服务器恢复数据库（关闭数据库 → 覆盖文件 → 硬重启）
   Future<void> restoreFromAlist() async {
     final s = serverInfo.value;
     if (s.url.isEmpty) {
@@ -130,7 +135,7 @@ class SettingController extends GetxController {
     final ok = await showOkCancelAlertDialog(
       context: Get.overlayContext!,
       title: '恢复数据',
-      message: '将从 $dir/ 下载备份并覆盖本地数据，应用将重启。确定继续？',
+      message: '将从 $dir/xlist_backup_latest.db 下载并覆盖本地数据，应用将重新启动。确定继续？',
       okLabel: '确定',
       cancelLabel: '取消',
     );
@@ -146,16 +151,21 @@ class SettingController extends GetxController {
       ));
 
       final path = dir.startsWith('/') ? dir : '/$dir';
-      final response = await dio.get('${url}dav$path/xlist_database.db',
+      final response = await dio.get('${url}dav$path/xlist_backup_latest.db',
           options: Options(responseType: ResponseType.bytes));
 
+      // 1. 关闭当前数据库（释放文件锁）
+      await DatabaseService.to.close();
+
+      // 2. 覆盖数据库文件
       final dbFile = File(databasePath.value);
       await dbFile.writeAsBytes(response.data);
+
       SmartDialog.dismiss();
-      SmartDialog.showToast('恢复成功！即将重启应用');
-      Future.delayed(const Duration(seconds: 2), () {
-        Get.forceAppUpdate();
-      });
+      SmartDialog.showToast('恢复成功，正在重启...');
+      // 3. 硬重启（确保 Floor 重新加载数据库）
+      await Future.delayed(const Duration(seconds: 2));
+      exit(0);
     } catch (e) {
       SmartDialog.dismiss();
       SmartDialog.showToast('恢复失败: $e');

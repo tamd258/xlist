@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:get/get.dart';
 import 'package:floor/floor.dart';
+import 'package:sqflite/sqflite.dart' show sqfliteDatabaseFactory;
 
 import 'package:xlist/database/database.dart';
 
@@ -48,5 +49,10 @@ class DatabaseService extends GetxService {
   // 获取大小
   Future<int> getSize() async {
     return File(await sqfliteDatabaseFactory.getDatabasePath(name)).length();
+  }
+
+  // 关闭数据库（恢复前需要关闭，否则无法替换文件）
+  Future<void> close() async {
+    await _database.close();
   }
 }
