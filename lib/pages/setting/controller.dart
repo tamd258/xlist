@@ -157,13 +157,17 @@ class SettingController extends GetxController {
       // 1. 关闭当前数据库（释放文件锁）
       await DatabaseService.to.close();
 
-      // 2. 覆盖数据库文件
+      // 2. 清理 WAL/SHM 日志文件，避免旧数据残留
       final dbFile = File(databasePath.value);
+      try { await File('${databasePath.value}-wal').delete(); } catch (_) {}
+      try { await File('${databasePath.value}-shm').delete(); } catch (_) {}
+
+      // 3. 覆盖数据库文件
       await dbFile.writeAsBytes(response.data);
 
       SmartDialog.dismiss();
       SmartDialog.showToast('恢复成功，正在重启...');
-      // 3. 硬重启（确保 Floor 重新加载数据库）
+      // 4. 硬重启（确保 Floor 重新加载数据库）
       await Future.delayed(const Duration(seconds: 2));
       exit(0);
     } catch (e) {
