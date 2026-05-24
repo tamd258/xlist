@@ -162,13 +162,19 @@ class SettingController extends GetxController {
       try { await File('${databasePath.value}-wal').delete(); } catch (_) {}
       try { await File('${databasePath.value}-shm').delete(); } catch (_) {}
 
-      // 3. 覆盖数据库文件
-      await dbFile.writeAsBytes(response.data);
+      // 3. 覆盖数据库文件（flush: true 强制写入磁盘）
+      await dbFile.writeAsBytes(response.data, flush: true);
+
+      // 4. 验证写入成功
+      final writtenSize = await dbFile.length();
+      if (writtenSize != response.data.length) {
+        throw Exception('文件写入不完整: $writtenSize / ${response.data.length}');
+      }
 
       SmartDialog.dismiss();
-      SmartDialog.showToast('恢复成功，正在重启...');
-      // 4. 硬重启（确保 Floor 重新加载数据库）
-      await Future.delayed(const Duration(seconds: 2));
+      SmartDialog.showToast('恢复成功(${(writtenSize/1024).toStringAsFixed(0)}KB)，正在重启...');
+      // 5. 硬重启（确保 Floor 重新加载数据库）
+      await Future.delayed(const Duration(seconds: 3));
       exit(0);
     } catch (e) {
       SmartDialog.dismiss();
