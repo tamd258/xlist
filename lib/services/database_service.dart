@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:get/get.dart';
 import 'package:floor/floor.dart';
-import 'package:sqflite/sqflite.dart' show sqfliteDatabaseFactory;
+import 'package:sqflite/sqflite.dart' show getDatabasesPath, openDatabase;
 
 import 'package:xlist/database/database.dart';
 
@@ -48,7 +48,8 @@ class DatabaseService extends GetxService {
 
   // 获取大小
   Future<int> getSize() async {
-    return File(await sqfliteDatabaseFactory.getDatabasePath(name)).length();
+    final dbDir = await getDatabasesPath();
+    return File('$dbDir/$name').length();
   }
 
   // 关闭数据库（恢复前需要关闭，否则无法替换文件）
@@ -58,8 +59,10 @@ class DatabaseService extends GetxService {
 
   /// 将 WAL 日志写入主数据库（备份前必须执行，否则数据不完整）
   Future<void> checkpoint() async {
-    final dbPath = await sqfliteDatabaseFactory.getDatabasePath(name);
-    final db = await sqfliteDatabaseFactory.openDatabase('$dbPath/$name');
+    final dbDir = await getDatabasesPath();
+    final dbPath = '$dbDir/$name';
+    // 打开一个临时连接执行 checkpoint
+    var db = await openDatabase(dbPath);
     await db.execute('PRAGMA wal_checkpoint(FULL)');
     await db.close();
   }

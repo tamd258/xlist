@@ -20,6 +20,7 @@ dependencies:
   dio: ^5.0.1
   path: ^1.8.2
   floor: ^1.4.2
+  sqflite: ^2.3.0
   jiffy: ^6.1.0
   crypto: ^3.0.3
   encrypt: ^5.0.3
