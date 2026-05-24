@@ -30,7 +30,8 @@ const List<dynamic> kSupportPreviewVideoTypes = [
   'f4v',
   'vob',
   'mts',
-  'ts'
+  'ts',
+  'strm',
 ];
 
 // 支持预览的音频类型

@@ -133,7 +133,33 @@ class VideoPlayerController extends SuperController {
     await FijkHelper.setFijkOption(player, headers: httpHeaders);
     await player.setOption(FijkOption.playerCategory, 'seek-at-start',
         currentPos.value.inMilliseconds);
-    await player.setDataSource(object.value.rawUrl ?? '', autoPlay: isAutoPlay);
+
+    // 处理 .strm 文件：下载 → 读取内容 → 提取 URL → 用 URL 播放
+    String sourceUrl = object.value.rawUrl ?? '';
+    if (name.toLowerCase().endsWith('.strm')) {
+      try {
+        final strmHeaders = DriverHelper.getHeaders(
+            object.value.provider, object.value.rawUrl);
+        final dio = Dio();
+        final resp = await dio.get(
+          object.value.rawUrl ?? '',
+          options: Options(
+            headers: strmHeaders,
+            responseType: ResponseType.plain,
+          ),
+        );
+        final content = resp.data is String ? resp.data : resp.data.toString();
+        final lines = content.split(RegExp(r'[\r\n]+'));
+        final url = lines.firstWhere((l) => l.trim().isNotEmpty, orElse: () => '').trim();
+        if (url.isNotEmpty && url.startsWith('http')) {
+          sourceUrl = url;
+        }
+      } catch (_) {
+        // strm 解析失败，使用原始 URL
+      }
+    }
+
+    await player.setDataSource(sourceUrl, autoPlay: isAutoPlay);
 
     // Listener
     player.addListener(_fijkValueListener);
