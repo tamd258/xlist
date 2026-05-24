@@ -55,4 +55,12 @@ class DatabaseService extends GetxService {
   Future<void> close() async {
     await _database.close();
   }
+
+  /// 将 WAL 日志写入主数据库（备份前必须执行，否则数据不完整）
+  Future<void> checkpoint() async {
+    final dbPath = await sqfliteDatabaseFactory.getDatabasePath(name);
+    final db = await sqfliteDatabaseFactory.openDatabase('$dbPath/$name');
+    await db.execute('PRAGMA wal_checkpoint(FULL)');
+    await db.close();
+  }
 }

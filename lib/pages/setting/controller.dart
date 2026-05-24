@@ -95,6 +95,9 @@ class SettingController extends GetxController {
         connectTimeout: const Duration(seconds: 30),
       ));
 
+      // 0. 先将 WAL 写入主数据库（否则备份文件为空或不完整）
+      await DatabaseService.to.checkpoint();
+
       final dbFile = File(databasePath.value);
       if (!await dbFile.exists()) {
         SmartDialog.dismiss();
