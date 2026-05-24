@@ -70,7 +70,7 @@ class SettingController extends GetxController {
   }
 
   /// 备份路径（可自定义到任意云盘目录，如 /阿里云盘/xlist备份）
-  final backupPath = Get.find<PreferencesStorage>().backupPath;
+  final backupPath = Get.find<PreferencesStorage>().backupPath.val.obs;
 
   /// 备份数据库到 alist 服务器
   Future<void> backupToAlist() async {
@@ -80,7 +80,7 @@ class SettingController extends GetxController {
       return;
     }
 
-    final dir = backupPath.val;
+    final dir = backupPath.value;
     if (dir.isEmpty || dir == '/') {
       SmartDialog.showToast('请先设置备份路径(不能为根目录)');
       return;
@@ -121,7 +121,7 @@ class SettingController extends GetxController {
       return;
     }
 
-    final dir = backupPath.val;
+    final dir = backupPath.value;
     if (dir.isEmpty || dir == '/') {
       SmartDialog.showToast('请先设置备份路径(不能为根目录)');
       return;

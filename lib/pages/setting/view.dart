@@ -167,46 +167,6 @@ class SettingPage extends GetView<SettingController> {
                 ),
                 children: [
                   _buildListTile(
-                    title: 'settings_backup_path'.tr,
-                    icon: CupertinoIcons.folder,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 300.w,
-                          alignment: Alignment.centerRight,
-                          child: Obx(() => Text(
-                                controller.backupPath.val,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Get.textTheme.bodySmall?.copyWith(
-                                    color: CupertinoColors.systemGrey),
-                              )),
-                        ),
-                      ],
-                    ),
-                    onTap: () async {
-                      final result = await showTextInputDialog(
-                        context: Get.overlayContext!,
-                        title: '设置备份路径',
-                        message: '如 /阿里云盘/xlist备份',
-                        okLabel: '确定',
-                        cancelLabel: '取消',
-                        textFields: [
-                          DialogTextField(
-                            hintText: '/xlist_backup',
-                            initialText: controller.backupPath.val,
-                          ),
-                        ],
-                      );
-                      if (result != null && result.isNotEmpty) {
-                        controller.backupPath.val = result.first.startsWith('/')
-                            ? result.first
-                            : '/${result.first}';
-                      }
-                    },
-                  ),
-                  _buildListTile(
                     title: 'document'.tr,
                     icon: Icons.description_rounded,
                     onTap: () => Get.toNamed(Routes.SETTING_PREVIEW_DOCUMENT),
@@ -282,6 +242,48 @@ class SettingPage extends GetView<SettingController> {
                       style: Get.textTheme.bodySmall),
                 ),
                 children: [
+                  _buildListTile(
+                    title: 'settings_backup_path'.tr,
+                    icon: CupertinoIcons.folder,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 300.w,
+                          alignment: Alignment.centerRight,
+                          child: Obx(() => Text(
+                                controller.backupPath.value,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Get.textTheme.bodySmall?.copyWith(
+                                    color: CupertinoColors.systemGrey),
+                              )),
+                        ),
+                      ],
+                    ),
+                    onTap: () async {
+                      final result = await showTextInputDialog(
+                        context: Get.overlayContext!,
+                        title: '设置备份路径',
+                        message: '如 /阿里云盘/xlist备份',
+                        okLabel: '确定',
+                        cancelLabel: '取消',
+                        textFields: [
+                          DialogTextField(
+                            hintText: '/xlist_backup',
+                            initialText: controller.backupPath.value,
+                          ),
+                        ],
+                      );
+                      if (result != null && result.isNotEmpty) {
+                        final val = result.first.startsWith('/')
+                            ? result.first
+                            : '/${result.first}';
+                        controller.backupPath.value = val;
+                        Get.find<PreferencesStorage>().backupPath.val = val;
+                      }
+                    },
+                  ),
                   _buildListTile(
                     title: 'settings_backup_to_alist'.tr,
                     icon: CupertinoIcons.cloud_upload,
