@@ -152,7 +152,7 @@ class VideoPlayerController extends SuperController {
         // 取第一行非空内容作为播放 URL
         final url = content
             .split(RegExp(r'[\r\n]+'))
-            .firstWhere((l) => l.trim().isNotEmpty, orElse: () => '')
+            .firstWhere((String l) => l.trim().isNotEmpty, orElse: () => '')
             .trim();
         if (url.isNotEmpty && (url.startsWith('http://') || url.startsWith('https://'))) {
           sourceUrl = url;
