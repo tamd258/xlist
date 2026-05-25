@@ -130,33 +130,6 @@ class ObjectHelper {
         }
         return;
       }
-          final headers = DriverHelper.getHeaders(object.provider, rawUrl);
-          final resp = await Dio().get(
-            rawUrl,
-            options: Options(
-              headers: headers,
-              responseType: ResponseType.plain,
-              receiveTimeout: const Duration(seconds: 10),
-            ),
-          );
-          SmartDialog.dismiss();
-          final content = resp.data.toString();
-          final url = content
-              .split(RegExp(r'[\r\n]+'))
-              .firstWhere((String l) => l.trim().isNotEmpty, orElse: () => '')
-              .trim();
-          if (url.isNotEmpty && (url.startsWith('http://') || url.startsWith('https://'))) {
-            Get.toNamed(Routes.VIDEO_PLAYER,
-                arguments: {'path': path, 'name': name, 'objects': objects, 'strmUrl': url});
-          } else {
-            SmartDialog.showToast('strm 内容无效 (${content.length}B)');
-          }
-        } catch (e) {
-          SmartDialog.dismiss();
-          SmartDialog.showToast('strm 错误: $e');
-        }
-        return;
-      }
 
       Get.toNamed(Routes.VIDEO_PLAYER,
           arguments: {'path': path, 'name': name, 'objects': objects});
