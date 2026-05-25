@@ -137,8 +137,8 @@ class VideoPlayerController extends SuperController {
     // 处理 .strm 文件：下载 → 提取内部 URL → 用 URL 播放
     String sourceUrl = object.value.rawUrl ?? '';
     if (name.toLowerCase().endsWith('.strm')) {
+      SmartDialog.showLoading(msg: '正在解析 .strm...');
       try {
-        // 用 alist 默认浏览器头 + 驱动头避免被拒
         final headers = DriverHelper.getHeaders(
             object.value.provider, object.value.rawUrl);
         final resp = await Dio().get(
@@ -146,10 +146,11 @@ class VideoPlayerController extends SuperController {
           options: Options(
             headers: headers,
             responseType: ResponseType.plain,
+            receiveTimeout: const Duration(seconds: 10),
           ),
         );
+        SmartDialog.dismiss();
         final content = resp.data is String ? resp.data : resp.data.toString();
-        // 取第一行非空内容作为播放 URL
         final url = content
             .split(RegExp(r'[\r\n]+'))
             .firstWhere((String l) => l.trim().isNotEmpty, orElse: () => '')
@@ -157,19 +158,22 @@ class VideoPlayerController extends SuperController {
         if (url.isNotEmpty && (url.startsWith('http://') || url.startsWith('https://'))) {
           sourceUrl = url;
         } else {
-          await showOkAlertDialog(
-            context: Get.overlayContext!,
-            title: 'strm 解析失败',
-            message: '文件内容：\n${content.length > 200 ? '${content.substring(0, 200)}...' : content}',
+          Get.snackbar(
+            'strm 解析失败',
+            '内容前100字:\n${content.length > 100 ? '${content.substring(0, 100)}...' : content}',
+            duration: const Duration(seconds: 10),
           );
+          Get.back();
           return;
         }
       } catch (e) {
-        await showOkAlertDialog(
-          context: Get.overlayContext!,
-          title: '读取 .strm 失败',
-          message: '$e',
+        SmartDialog.dismiss();
+        Get.snackbar(
+          '读取 .strm 失败',
+          '$e'.length > 150 ? '${'$e'.substring(0, 150)}...' : '$e',
+          duration: const Duration(seconds: 10),
         );
+        Get.back();
         return;
       }
     }
