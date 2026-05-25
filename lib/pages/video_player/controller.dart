@@ -134,28 +134,30 @@ class VideoPlayerController extends SuperController {
     await player.setOption(FijkOption.playerCategory, 'seek-at-start',
         currentPos.value.inMilliseconds);
 
-    // 处理 .strm 文件：下载 → 读取内容 → 提取 URL → 用 URL 播放
+    // 处理 .strm 文件：下载 → 提取内部 URL → 用 URL 播放
     String sourceUrl = object.value.rawUrl ?? '';
     if (name.toLowerCase().endsWith('.strm')) {
       try {
-        final strmHeaders = DriverHelper.getHeaders(
-            object.value.provider, object.value.rawUrl);
-        final dio = Dio();
-        final resp = await dio.get(
-          object.value.rawUrl ?? '',
-          options: Options(
-            headers: strmHeaders,
-            responseType: ResponseType.plain,
-          ),
+        // rawUrl 已包含 alist 签名，不需要额外 headers
+        final resp = await Dio().get(
+          sourceUrl,
+          options: Options(responseType: ResponseType.plain),
         );
         final content = resp.data is String ? resp.data : resp.data.toString();
-        final lines = content.split(RegExp(r'[\r\n]+'));
-        final url = lines.firstWhere((l) => l.trim().isNotEmpty, orElse: () => '').trim();
-        if (url.isNotEmpty && url.startsWith('http')) {
+        // 取第一行非空内容作为播放 URL
+        final url = content
+            .split(RegExp(r'[\r\n]+'))
+            .firstWhere((l) => l.trim().isNotEmpty, orElse: () => '')
+            .trim();
+        if (url.isNotEmpty && (url.startsWith('http://') || url.startsWith('https://'))) {
           sourceUrl = url;
+        } else {
+          SmartDialog.showToast('.strm 内容无效');
+          return;
         }
-      } catch (_) {
-        // strm 解析失败，使用原始 URL
+      } catch (e) {
+        SmartDialog.showToast('读取 .strm 失败: $e');
+        return;
       }
     }
 
