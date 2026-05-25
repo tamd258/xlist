@@ -138,10 +138,15 @@ class VideoPlayerController extends SuperController {
     String sourceUrl = object.value.rawUrl ?? '';
     if (name.toLowerCase().endsWith('.strm')) {
       try {
-        // rawUrl 已包含 alist 签名，不需要额外 headers
+        // 用 alist 默认浏览器头 + 驱动头避免被拒
+        final headers = DriverHelper.getHeaders(
+            object.value.provider, object.value.rawUrl);
         final resp = await Dio().get(
           sourceUrl,
-          options: Options(responseType: ResponseType.plain),
+          options: Options(
+            headers: headers,
+            responseType: ResponseType.plain,
+          ),
         );
         final content = resp.data is String ? resp.data : resp.data.toString();
         // 取第一行非空内容作为播放 URL
@@ -152,11 +157,19 @@ class VideoPlayerController extends SuperController {
         if (url.isNotEmpty && (url.startsWith('http://') || url.startsWith('https://'))) {
           sourceUrl = url;
         } else {
-          SmartDialog.showToast('.strm 内容无效');
+          await showOkAlertDialog(
+            context: Get.overlayContext!,
+            title: 'strm 解析失败',
+            message: '文件内容：\n${content.length > 200 ? '${content.substring(0, 200)}...' : content}',
+          );
           return;
         }
       } catch (e) {
-        SmartDialog.showToast('读取 .strm 失败: $e');
+        await showOkAlertDialog(
+          context: Get.overlayContext!,
+          title: '读取 .strm 失败',
+          message: '$e',
+        );
         return;
       }
     }
