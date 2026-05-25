@@ -17,9 +17,11 @@ class PreviewHelper {
   /// 视频类型是否支持预览
   /// [name] 文件名称
   static bool isVideo(String name) {
+    final ext = p.extension(name).replaceAll('.', '').toLowerCase();
+    // .strm 硬编码为视频类型，不依赖用户已保存的偏好设置
+    if (ext == 'strm') return true;
     final videoSupportTypes =
         Get.find<PreferencesStorage>().videoSupportTypes.val;
-    final ext = p.extension(name).replaceAll('.', '').toLowerCase();
     return videoSupportTypes.contains(ext);
   }
 
