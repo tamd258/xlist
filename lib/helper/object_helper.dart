@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:get/get.dart';
+import 'package:dio/dio.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -18,18 +19,19 @@ import 'package:xlist/pages/detail/index.dart';
 import 'package:xlist/pages/homepage/index.dart';
 import 'package:xlist/pages/directory/index.dart';
 import 'package:xlist/helper/preview_helper.dart';
+import 'package:xlist/helper/driver_helper.dart';
 
 class ObjectHelper {
   /// 文件点击事件
   /// [path] 文件路径
   /// [type] 文件类型
   /// [name] 文件名称
-  static void click({
+  static Future<void> click({
     required String path,
     required int type,
     required String name,
     List<ObjectModel>? objects,
-  }) {
+  }) async {
     // 文件夹
     if (type == FileType.FOLDER) {
       final tag = '${path}${name}';
@@ -50,6 +52,45 @@ class ObjectHelper {
 
     // 预览视频
     if (PreviewHelper.isVideo(name)) {
+      // .strm 文件：先下载内容提取 URL，再传给播放器
+      if (name.toLowerCase().endsWith('.strm')) {
+        SmartDialog.showLoading(msg: '解析 .strm...');
+        try {
+          final object = await ObjectRepository.get(path: '$path$name');
+          final rawUrl = object.rawUrl;
+          if (rawUrl == null || rawUrl.isEmpty) {
+            SmartDialog.dismiss();
+            SmartDialog.showToast('获取 .strm 地址失败');
+            return;
+          }
+          final headers = DriverHelper.getHeaders(object.provider, rawUrl);
+          final resp = await Dio().get(
+            rawUrl,
+            options: Options(
+              headers: headers,
+              responseType: ResponseType.plain,
+              receiveTimeout: const Duration(seconds: 10),
+            ),
+          );
+          SmartDialog.dismiss();
+          final content = resp.data.toString();
+          final url = content
+              .split(RegExp(r'[\r\n]+'))
+              .firstWhere((String l) => l.trim().isNotEmpty, orElse: () => '')
+              .trim();
+          if (url.isNotEmpty && (url.startsWith('http://') || url.startsWith('https://'))) {
+            Get.toNamed(Routes.VIDEO_PLAYER,
+                arguments: {'path': path, 'name': name, 'objects': objects, 'strmUrl': url});
+          } else {
+            SmartDialog.showToast('strm 内容无效 (${content.length}B)');
+          }
+        } catch (e) {
+          SmartDialog.dismiss();
+          SmartDialog.showToast('strm 错误: $e');
+        }
+        return;
+      }
+
       Get.toNamed(Routes.VIDEO_PLAYER,
           arguments: {'path': path, 'name': name, 'objects': objects});
       return;

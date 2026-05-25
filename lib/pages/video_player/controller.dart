@@ -134,41 +134,11 @@ class VideoPlayerController extends SuperController {
     await player.setOption(FijkOption.playerCategory, 'seek-at-start',
         currentPos.value.inMilliseconds);
 
-    // 处理 .strm 文件：下载 → 提取内部 URL → 用 URL 播放
-    String sourceUrl = object.value.rawUrl ?? '';
-    if (name.toLowerCase().endsWith('.strm')) {
-      SmartDialog.showLoading(msg: '解析 .strm...');
-      try {
-        final headers = DriverHelper.getHeaders(
-            object.value.provider, object.value.rawUrl);
-        final resp = await Dio().get(
-          sourceUrl,
-          options: Options(
-            headers: headers,
-            responseType: ResponseType.plain,
-            receiveTimeout: const Duration(seconds: 10),
-          ),
-        );
-        SmartDialog.dismiss();
-        final content = resp.data is String ? resp.data : resp.data.toString();
-        final url = content
-            .split(RegExp(r'[\r\n]+'))
-            .firstWhere((String l) => l.trim().isNotEmpty, orElse: () => '')
-            .trim();
-        if (url.isNotEmpty && (url.startsWith('http://') || url.startsWith('https://'))) {
-          sourceUrl = url;
-        } else {
-          final preview = content.length > 100
-              ? '${content.substring(0, 100)}...'
-              : content;
-          SmartDialog.showToast('strm内容无效: $preview');
-          // 继续用原始URL尝试播放
-        }
-      } catch (e) {
-        SmartDialog.dismiss();
-        SmartDialog.showToast('strm读取失败: $e');
-        // 继续用原始URL尝试播放
-      }
+    // 处理 .strm 文件：如果 ObjectHelper 已解析出 URL，直接使用
+    final strmUrl = Get.arguments['strmUrl'] as String? ?? '';
+    String sourceUrl = strmUrl.isNotEmpty ? strmUrl : (object.value.rawUrl ?? '');
+    if (strmUrl.isEmpty && name.toLowerCase().endsWith('.strm')) {
+      // strmUrl 未传入说明 ObjectHelper 没处理，这里不应该到达
     }
 
     await player.setDataSource(sourceUrl, autoPlay: isAutoPlay);
