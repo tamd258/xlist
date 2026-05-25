@@ -56,13 +56,80 @@ class ObjectHelper {
       if (name.toLowerCase().endsWith('.strm')) {
         SmartDialog.showLoading(msg: '解析 .strm...');
         try {
-          final object = await ObjectRepository.get(path: '$path$name');
-          final rawUrl = object.rawUrl;
-          if (rawUrl == null || rawUrl.isEmpty) {
-            SmartDialog.dismiss();
-            SmartDialog.showToast('获取 .strm 地址失败');
-            return;
+          final object = await ObjectRepository.get(path: '\$path\$name');
+          
+          // 尝试获取 strm 文件内容
+          String content = '';
+          
+          // 方式1: 用 rawUrl（兼容普通 strm 文件）
+          if (object.rawUrl != null && object.rawUrl!.isNotEmpty) {
+            try {
+              final headers = DriverHelper.getHeaders(object.provider, object.rawUrl);
+              final resp = await Dio().get(
+                object.rawUrl!,
+                options: Options(
+                  headers: headers,
+                  responseType: ResponseType.plain,
+                  receiveTimeout: const Duration(seconds: 10),
+                ),
+              );
+              content = resp.data.toString();
+            } catch (e) {
+              // rawUrl 失败，继续尝试方式2
+            }
           }
+          
+          // 方式2: 用 /d/ 代理路径（Alist strm 驱动返回 MFile 的情况）
+          if (content.isEmpty) {
+            try {
+              final serverUrl = Get.find<UserStorage>().serverUrl.val;
+              final strmPath = '\$path\$name';
+              // 构造 /d/ 路径，这是 strm 驱动的代理端点
+              final proxyUrl = '\$serverUrl/d\$strmPath';
+              final headers = DriverHelper.getHeaders(null, proxyUrl);
+              final resp = await Dio().get(
+                proxyUrl,
+                options: Options(
+                  headers: headers,
+                  responseType: ResponseType.plain,
+                  followRedirects: true,
+                  receiveTimeout: const Duration(seconds: 15),
+                ),
+              );
+              content = resp.data.toString();
+            } catch (e) {
+              SmartDialog.dismiss();
+              SmartDialog.showToast('strm 解析失败: \$e');
+              return;
+            }
+          }
+          
+          SmartDialog.dismiss();
+          
+          // 提取 URL（取第一行非空内容）
+          final url = content
+              .split(RegExp(r'[\r\n]+'))
+              .firstWhere((String l) => l.trim().isNotEmpty, orElse: () => '')
+              .trim();
+          
+          if (url.isNotEmpty) {
+            // 如果是相对路径，补全为完整 URL
+            String finalUrl = url;
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+              final serverUrl = Get.find<UserStorage>().serverUrl.val;
+              finalUrl = '\$serverUrl\$url';
+            }
+            Get.toNamed(Routes.VIDEO_PLAYER,
+                arguments: {'path': path, 'name': name, 'objects': objects, 'strmUrl': finalUrl});
+          } else {
+            SmartDialog.showToast('strm 内容无效');
+          }
+        } catch (e) {
+          SmartDialog.dismiss();
+          SmartDialog.showToast('strm 错误: \$e');
+        }
+        return;
+      }
           final headers = DriverHelper.getHeaders(object.provider, rawUrl);
           final resp = await Dio().get(
             rawUrl,
