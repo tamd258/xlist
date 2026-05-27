@@ -95,8 +95,6 @@ class VideoPlayerController extends SuperController {
     if (file.isEmpty) {
       try {
         object.value = await ObjectRepository.get(path: '${path}${name}');
-        httpHeaders.value = await DriverHelper.getHeaders(
-            object.value.provider, object.value.rawUrl);
       } catch (e) {
         SmartDialog.showToast('toast_get_object_fail'.tr);
         return;
@@ -130,18 +128,17 @@ class VideoPlayerController extends SuperController {
     await updateProgress();
 
     // 初始化播放器
-    await FijkHelper.setFijkOption(player, headers: httpHeaders);
-    await player.setOption(FijkOption.playerCategory, 'seek-at-start',
-        currentPos.value.inMilliseconds);
-
-    // 处理 .strm 文件：如果 ObjectHelper 已解析出 URL，直接使用
-    final strmUrl = Get.arguments['strmUrl'] as String? ?? '';
-    String sourceUrl = strmUrl.isNotEmpty ? strmUrl : (object.value.rawUrl ?? '');
-    if (strmUrl.isEmpty && name.toLowerCase().endsWith('.strm')) {
-      // strmUrl 未传入说明 ObjectHelper 没处理，这里不应该到达
+    try {
+      final sourceUrl = await StrmHelper.resolvePlayUrl(object.value, name);
+      httpHeaders.value = StrmHelper.getHeaders(object.value, sourceUrl);
+      await FijkHelper.setFijkOption(player, headers: httpHeaders);
+      await player.setOption(FijkOption.playerCategory, 'seek-at-start',
+          currentPos.value.inMilliseconds);
+      await player.setDataSource(sourceUrl, autoPlay: isAutoPlay);
+    } catch (e) {
+      SmartDialog.showToast(e.toString());
+      return;
     }
-
-    await player.setDataSource(sourceUrl, autoPlay: isAutoPlay);
 
     // Listener
     player.addListener(_fijkValueListener);
@@ -294,10 +291,20 @@ class VideoPlayerController extends SuperController {
       await player.setCover(_cover?.image);
 
       // 初始化播放器
-      await FijkHelper.setFijkOption(player, headers: httpHeaders);
-      await player.setOption(FijkOption.playerCategory, 'seek-at-start',
-          currentPos.value.inMilliseconds);
-      await player.setDataSource(object.value.rawUrl!, autoPlay: true);
+      try {
+        final sourceUrl = await StrmHelper.resolvePlayUrl(
+          object.value,
+          _object.name!,
+        );
+        httpHeaders.value = StrmHelper.getHeaders(object.value, sourceUrl);
+        await FijkHelper.setFijkOption(player, headers: httpHeaders);
+        await player.setOption(FijkOption.playerCategory, 'seek-at-start',
+            currentPos.value.inMilliseconds);
+        await player.setDataSource(sourceUrl, autoPlay: true);
+      } catch (e) {
+        SmartDialog.showToast(e.toString());
+        return;
+      }
 
       // 加入最近浏览
       await CommonUtils.addRecent(object.value, path, _object.name!);

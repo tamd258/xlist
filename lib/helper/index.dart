@@ -1,5 +1,6 @@
 export 'fijk_helper.dart';
 export 'driver_helper.dart';
+export 'strm_helper.dart';
 export 'button_helper.dart';
 export 'object_helper.dart';
 export 'preview_helper.dart';
